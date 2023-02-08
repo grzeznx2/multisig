@@ -7,7 +7,7 @@ contract MultiSigWallet {
     event Submit(uint256 indexed txId);
     event Approve(address indexed owner, uint256 indexed txId);
     event Revoke(address indexed owner, uint256 indexed txId);
-    event Executde(uint256 indexed txId);
+    event Execute(uint256 indexed txId);
 
     struct Transaction {
         address to;
@@ -77,5 +77,26 @@ contract MultiSigWallet {
     function approve(uint256 _txId) external onlyOwner txExists(_txId) notApproved(_txId) notExecuted(_txId){
         approved[_txId][msg.sender] = true;
         emit Approve(msg.sender, _txId);
+    }
+
+    function _getApprovalCount(uint256 _txId) private view returns(uint256 count) {
+
+        for(uint256 i; i < owners.length; i++){
+            if(approved[_txId][owners[i]]){
+                count++;
+            }
+        }
+    }
+
+    function execute(uint256 _txId) external onlyOwner txExists(_txId) notExecuted(_txId){
+        require(_getApprovalCount(_txId) >= required, "Not enough approvals");
+
+        Transaction memory transaction = transactions[_txId];
+        transactions[_txId].executed = true;
+
+        (bool success,) = transaction.to.call{value: transaction.value}(transaction.data);
+        require(success, "Error ocurred");
+
+        emit Execute(_txId);
     }
 }
