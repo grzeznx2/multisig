@@ -22,6 +22,11 @@ contract MultiSigWallet {
     uint public required;
     Transaction[] public transactions;
 
+    modifier onlyOwner(){
+        require(isOwner[msg.sender], "Not an owner");
+        _;
+    }
+
     constructor(address[] memory _owners, uint256 _required){
         require(_owners.length > 0, "At least 1 owner required");
         require(_required > 0 && _required <= _owners.length, "Invalid required number of owners");
@@ -31,11 +36,26 @@ contract MultiSigWallet {
 
             require(owner != address(0), "Invalid owner");
             require(!isOwner[owner], "Owner is not unique");
-            
+
             isOwner[owner] = true;
             owners.push(owner);
         }
 
         required = _required;
+    }
+
+    receive() external payable {
+        emit Deposit(msg.sender, msg.value);
+    }
+
+    function submit(address _to, uint256 _value, bytes calldata _data) external onlyOwner {
+        transactions.push(Transaction({
+            to: _to,
+            value: _value,
+            data: _data,
+            executed: false
+        }));
+
+        emit Submit(transactions.length - 1);
     }
 }
