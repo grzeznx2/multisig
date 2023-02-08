@@ -99,4 +99,11 @@ contract MultiSigWallet {
 
         emit Execute(_txId);
     }
+
+    function revoke(uint256 _txId) external onlyOwner txExists(_txId) notExecuted(_txId){
+        require(approved[_txId][msg.sender], "Tx not approved");
+        approved[_txId][msg.sender] = false;
+        
+        emit Revoke(msg.sender, _txId);
+    }
 }
