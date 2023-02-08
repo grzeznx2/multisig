@@ -3,11 +3,11 @@ pragma solidity ^0.8.9;
 
 
 contract MultiSigWallet {
-    event Deposit(address indexed sender, uint amount);
-    event Submit(uint indexed txId);
-    event Approve(uint indexed owner, uint indexed txId);
-    event Revoke(uint indexed owner, uint indexed txId);
-    event Executde(uint indexed txId);
+    event Deposit(address indexed sender, uint256 amount);
+    event Submit(uint256 indexed txId);
+    event Approve(address indexed owner, uint256 indexed txId);
+    event Revoke(address indexed owner, uint256 indexed txId);
+    event Executde(uint256 indexed txId);
 
     struct Transaction {
         address to;
@@ -24,6 +24,21 @@ contract MultiSigWallet {
 
     modifier onlyOwner(){
         require(isOwner[msg.sender], "Not an owner");
+        _;
+    }
+
+    modifier txExists(uint256 _txId){
+        require(_txId < transactions.length, "Transactions does not exist");
+        _;
+    }
+
+    modifier notApproved(uint256 _txId){
+        require(!approved[_txId][msg.sender], "Tx already approved");
+        _;
+    }
+
+    modifier notExecuted(uint256 _txId){
+        require(!transactions[_txId].executed, "Tx already executed");
         _;
     }
 
@@ -57,5 +72,10 @@ contract MultiSigWallet {
         }));
 
         emit Submit(transactions.length - 1);
+    }
+
+    function approve(uint256 _txId) external onlyOwner txExists(_txId) notApproved(_txId) notExecuted(_txId){
+        approved[_txId][msg.sender] = true;
+        emit Approve(msg.sender, _txId);
     }
 }
